@@ -9,7 +9,7 @@ iris = load_iris()
 x, y = iris.data, iris.target
 
 # 訓練データとテストデータに分割
-x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.5, random_state=0)
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.3, random_state=0)
 
 # solverには確率的勾配降下法(sgd)やadamなどが利用可能です。
 model = MLPClassifier(solver="sgd", random_state=0, max_iter=3000)
@@ -31,14 +31,26 @@ from wtforms import Form, FloatField, SubmitField, validators, ValidationError
 import numpy as np
 import gradio as gr
 import joblib
+import pandas as pd
+from sklearn.neighbors import KNeighborsClassifier
 
-# 学習済みモデルを読み込み利用します
-def predict(parameters):
-    # ニューラルネットワークのモデルを読み込み
-    model = joblib.load('./nn.pkl')
-    params = parameters.reshape(1, -1)
-    pred = model.predict(params)
-    return pred
+def predict(sepal_length, sepal_width,
+            petal_length, petal_width):
+    mat = np.array([sepal_length, sepal_width,
+                    petal_length, petal_width])
+    mat = mat.reshape(1, mat.shape[0])
+    df = pd.DataFrame(mat, columns=['sepal length (cm)', 'sepal width (cm)', 'petal length (cm)', 'petal width (cm)'])
+    # res = knn.predict(df)
+    # return res[0]
+    knn = KNeighborsClassifier(n_neighbors=6)
+    res = knn.predict_proba(df)
+    res_dict = {}
+    for i in range(len(res[0])):
+        # NOTE: クラスと確率の組をdictで返すとラベルに両方とも綺麗に表示される。
+        # そのときkeyにするクラスの型は文字列にするのが望ましい。
+        res_dict[str(i)] = res[0][i]
+    return res_dict
+
 
 # ラベルからIrisの名前を取得します
 def getName(label):
@@ -59,11 +71,22 @@ def recognition_flower(sepal_length, sepal_width, petal_length, petal_width):
     return irisName
 
 
-demo = gr.Interface(fn=recognition_flower,
-                    inputs=[gr.Textbox(label="SepalLength"),
-                            gr.Textbox(label="SepalWidth"),
-                            gr.Textbox(label="PetalLength"),
-                            gr.Textbox(label="PetalWidth")
-                    ],
-                    outputs="text")
-demo.launch()
+# Define the interface
+sepal_length = gr.inputs.Slider(
+    minimum=1, maximum=10, default=X['sepal length (cm)'].mean(), label='sepal_length')
+sepal_width = gr.inputs.Slider(
+    minimum=1, maximum=10, default=X['sepal width (cm)'].mean(), label='sepal_width')
+petal_length = gr.inputs.Slider(
+    minimum=1, maximum=10, default=X['petal length (cm)'].mean(), label='petal_length')
+petal_width = gr.inputs.Slider(
+    minimum=1, maximum=10, default=X['petal width (cm)'].mean(), label='petal_width')
+output_placeholder = gr.outputs.Label()
+
+
+interface = gr.Interface(predict,
+                         [sepal_length, sepal_width,
+                          petal_length, petal_width],
+                         output_placeholder,
+                         examples='flagged/')
+
+interface.launch()
