@@ -9,7 +9,7 @@ iris = load_iris()
 x, y = iris.data, iris.target
 
 # 訓練データとテストデータに分割
-x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.5, random_state=0)
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.3, random_state=0)
 
 # solverには確率的勾配降下法(sgd)やadamなどが利用可能です。
 model = MLPClassifier(solver="sgd", random_state=0, max_iter=3000)
@@ -88,6 +88,5 @@ interface = gr.Interface(predict,
                           petal_length, petal_width],
                          output_placeholder,
                          examples='flagged/')
-
 
 interface.launch()
